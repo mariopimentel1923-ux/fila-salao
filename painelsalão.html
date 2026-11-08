@@ -1,104 +1,110 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>painel dos barbeiros</title>
-  <style>
-    body { font-family: sans-serif; background: #e9ecef; padding: 20px; color: #333; margin: 0; }
-    h2 { text-align: center; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 800px; margin: 0 auto; }
-    @media(max-width: 600px) { .grid { grid-template-columns: 1fr; } }
-    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
-    .card-jalbanis { border-top: 5px solid #28a745; }
-    .card-viny { border-top: 5px solid #fd7e14; }
-    button { width: 100%; padding: 15px; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 15px; font-weight: bold; }
-    .btn-jalbanis { background: #28a745; }
-    .btn-viny { background: #fd7e14; }
-    .numero { font-size: 32px; font-weight: bold; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>painel dos barbeiros - fila</title>
+    <!-- Firebase App (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <!-- Firebase Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; margin: 0; }
+        .painel-container { display: flex; gap: 20px; max-width: 900px; margin: 0 auto; flex-wrap: wrap; }
+        .coluna { flex: 1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 300px; }
+        h2 { text-align: center; margin-top: 0; padding-bottom: 10px; border-bottom: 2px solid #eee; }
+        .coluna-jalbanis h2 { color: #28a745; }
+        .coluna-viny h2 { color: #fd7e14; }
+        ul { list-style: none; padding: 0; }
+        li { background: #fafafa; margin-bottom: 10px; padding: 12px; border-radius: 6px; border: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        .btn-proximo { background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-proximo:hover { background: #0056b3; }
+        .vazio { text-align: center; color: #888; font-style: italic; margin-top: 20px; }
+    </style>
 </head>
 <body>
 
-  <h2>painel de controle</h2>
-  
-  <div class="grid">
-    <div class="card card-jalbanis">
-      <h3>fila do jalbanis</h3>
-      <p>na cadeira agora: <br><span class="numero" id="jalbanis-cadeira">0</span></p>
-      <p>último da fila: <strong id="jalbanis-ultimo">0</strong></p>
-      <button class="btn-jalbanis" onclick="chamarProximo('jalbanis')">chamar próximo (jalbanis)</button>
+    <h1 style="text-align: center; margin-bottom: 30px;">painel de atendimento - salão</h1>
+
+    <div class="painel-container">
+        <!-- FILA DO JALBANIS -->
+        <div class="coluna coluna-jalbanis">
+            <h2>jalbanis</h2>
+            <ul id="lista-jalbanis">
+                <li class="vazio">a carregar fila...</li>
+            </ul>
+        </div>
+
+        <!-- FILA DO VINY -->
+        <div class="coluna coluna-viny">
+            <h2>viny</h2>
+            <ul id="lista-viny">
+                <li class="vazio">a carregar fila...</li>
+            </ul>
+        </div>
     </div>
 
-    <div class="card card-viny">
-      <h3>fila do viny</h3>
-      <p>na cadeira agora: <br><span class="numero" id="viny-cadeira">0</span></p>
-      <p>último da fila: <strong id="viny-ultimo">0</strong></p>
-      <button class="btn-viny" onclick="chamarProximo('viny')">chamar próximo (viny)</button>
-    </div>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAwdoWPLbo-23-lUiD4vqv2BZwMLXY20l4",
-      authDomain: "fila-salao-52932.firebaseapp.com",
-      databaseURL: "https://fila-salao-52932-default-rtdb.firebaseio.com",
-      projectId: "fila-salao-52932",
-      storageBucket: "fila-salao-52932.firebasestorage.app",
-      messagingSenderId: "906284386512",
-      appId: "1:906284386512:web:d106ff1a84e4576ae0b6d5"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    function monitorar(barbeiro) {
-      onValue(ref(db, 'barbeiros/' + barbeiro), (snap) => {
-        const dados = snap.val() || {};
-        const cadeiraAtual = dados.emAtendimento || 0; 
-        const ultimoTicket = dados.ultimoTicket || 0;
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            databaseURL: "https://fila-salao-default-rtdb.firebaseio.com/"
+        };
         
-        document.getElementById(barbeiro + '-cadeira').innerText = cadeiraAtual;
-        document.getElementById(barbeiro + '-ultimo').innerText = ultimoTicket;
-      });
-    }
-    
-    // conectando os novos barbeiros
-    monitorar('jalbanis');
-    monitorar('viny');
-
-    window.chamarProximo = async function(barbeiro) {
-      const dbRef = ref(db, 'barbeiros/' + barbeiro);
-      const snapshot = await get(dbRef);
-      const dados = snapshot.val() || {};
-      
-      let cadeiraAtual = dados.emAtendimento || 0;
-      let ultimoTicket = dados.ultimoTicket || 0;
-      let novoAtendimento = cadeiraAtual + 1;
-      
-      if (novoAtendimento > ultimoTicket) {
-        alert("não há mais clientes na fila.");
-        return;
-      }
-
-      await set(ref(db, 'barbeiros/' + barbeiro + '/emAtendimento'), novoAtendimento);
-
-      const proximoTicket = novoAtendimento + 1;
-      const clienteSnap = await get(ref(db, 'barbeiros/' + barbeiro + '/clientes/' + proximoTicket));
-      
-      if (clienteSnap.exists()) {
-        const cliente = clienteSnap.val();
-        if (cliente.whatsapp) {
-           const nomeBarbeiro = barbeiro.charAt(0).toUpperCase() + barbeiro.slice(1);
-           const texto = `olá, ${cliente.nome}! você é o próximo da fila com o ${nomeBarbeiro}. vá se aproximando da barbearia. lembrando que a tolerância de espera é de apenas 5 minutos.`;
-           const link = `https://wa.me/55${cliente.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`;
-           window.open(link, '_blank');
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
-      }
-    };
-  </script>
+        const db = firebase.database();
+
+        // Função para carregar e monitorar a fila de cada barbeiro
+        function monitorarFila(barbeiro) {
+            const idLista = 'lista-' + barbeiro;
+            const refFila = db.ref('filas/' + barbeiro);
+
+            refFila.on('value', (snapshot) => {
+                const dados = snapshot.val();
+                const ul = document.getElementById(idLista);
+                ul.innerHTML = '';
+
+                if (!dados) {
+                    ul.innerHTML = '<li class="vazio">nenhum cliente na fila</li>';
+                    return;
+                }
+
+                const listaClientes = Object.entries(dados).map(([id, val]) => ({ id, ...val }));
+                // Ordena por ordem de chegada (timestamp)
+                listaClientes.sort((a, b) => a.timestamp - b.timestamp);
+
+                listaClientes.forEach((cliente, index) => {
+                    const li = document.createElement('li');
+                    
+                    // Se for o primeiro da fila, destaca visualmente
+                    if (index === 0) {
+                        li.style.borderColor = '#28a745';
+                        li.style.background = '#e9f7ef';
+                    }
+
+                    li.innerHTML = `
+                        <div>
+                            <strong>${index + 1}. ${cliente.nome}</strong><br>
+                            <small style="color: #666;">tel: ${cliente.whatsapp}</small>
+                        </div>
+                        <button class="btn-proximo" onclick="removerCliente('${barbeiro}', '${cliente.id}')">chamar / concluir</button>
+                    `;
+                    ul.appendChild(li);
+                });
+            });
+        }
+
+        // Função para remover o cliente da fila quando o atendimento for iniciado/concluído
+        function removerCliente(barbeiro, clienteId) {
+            if (confirm('Deseja avançar para o próximo cliente?')) {
+                db.ref('filas/' + barbeiro + '/' + clienteId).remove();
+            }
+        }
+
+        // Inicia a escuta para os dois barbeiros
+        monitorarFila('jalbanis');
+        monitorarFila('viny');
+    </script>
 </body>
 </html>
