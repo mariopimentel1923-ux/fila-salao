@@ -1,52 +1,112 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>fila da barbearia</title>
-  <style>
-    body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; margin: 0; text-align: center; }
-    .container { max-width: 400px; margin: 0 auto; background: #fff; padding: 30px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    button { width: 100%; padding: 15px; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; font-weight: bold; }
-    .btn-jalbanis { background: #28a745; }
-    .btn-viny { background: #fd7e14; }
-    input { width: 90%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; width: 100%; font-size: 16px; }
-    .escondido { display: none; }
-    .destaque { font-size: 80px; font-weight: bold; color: #333; margin: 10px 0; line-height: 1; }
-    .alerta-vez { background: #28a745; padding: 25px 20px; border-radius: 4px; font-weight: bold; color: white; display: none; margin-top: 15px; font-size: 24px; }
-    .texto-secundario { color: #666; font-size: 18px; margin-bottom: 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fila da barbearia</title>
+    <!-- Firebase App (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <!-- Firebase Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; text-align: center; }
+        .container { max-width: 400px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        button { width: 100%; padding: 15px; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        .btn-jalbanis { background: #28a745; }
+        .btn-viny { background: #fd7e14; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+        .escondido { display: none; }
+        .destaque { font-size: 40px; font-weight: bold; color: #333; margin: 10px 0; }
+    </style>
 </head>
 <body>
 
-  <div id="tela-entrada" class="container">
-    <h2 style="margin-top:0;">entrar na fila</h2>
-    <input type="text" id="nome" placeholder="seu nome">
-    <input type="tel" id="whatsapp" placeholder="seu whatsapp (ex: 11999999999)">
-    <p style="margin-top: 20px;">com quem você vai cortar?</p>
-    <button class="btn-jalbanis" onclick="entrarNaFila('jalbanis')">fila do jalbanis</button>
-    <button class="btn-viny" onclick="entrarNaFila('viny')">fila do viny</button>
-  </div>
-
-  <div id="tela-cliente" class="container escondido">
-    <p>olá, <strong id="display-nome"></strong>!</p>
-    <p>barbeiro: <strong id="display-barbeiro" style="text-transform: capitalize;"></strong></p>
-    
-    <div id="area-contagem">
-      <p class="texto-secundario" style="margin-top: 30px;">pessoas na sua frente:</p>
-      <div class="destaque" id="pessoas-frente">-</div>
+    <!-- TELA DE ENTRADA -->
+    <div id="tela-entrada" class="container">
+        <h2 style="margin-top:0;">entrar na fila</h2>
+        
+        <input type="text" id="nome" placeholder="seu nome">
+        <input type="tel" id="whatsapp" placeholder="seu whatsapp">
+        
+        <p style="margin-top: 10px;">com quem você vai cortar?</p>
+        
+        <!-- Botões chamam diretamente a função com o nome em minúsculas -->
+        <button class="btn-jalbanis" onclick="entrarNaFila('jalbanis')">fila do jalbanis</button>
+        <button class="btn-viny" onclick="entrarNaFila('viny')">fila do viny</button>
     </div>
-    
-    <div id="alerta-vez" class="alerta-vez">
-      é a sua vez!<br><span style="font-size:16px; font-weight:normal; display:block; margin-top:10px;">dirija-se à cadeira.</span>
+
+    <!-- TELA DE ESPERA -->
+    <div id="tela-cliente" class="container escondido">
+        <p>olá, <strong id="display-nome"></strong></p>
+        <p>barbeiro: <strong id="display-barbeiro" style="text-transform: capitalize;"></strong></p>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+        
+        <p style="margin:0; font-size: 16px; color: #666;">pessoas na sua frente:</p>
+        <div id="display-posicao" class="destaque">0</div>
+        
+        <p style="font-size: 14px; color: #888; margin-top: 15px;">aguarde o seu chamado no salão.</p>
     </div>
-  </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            databaseURL: "https://fila-salao-default-rtdb.firebaseio.com/"
+        };
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAwdoWPLbo-23-lUiD4vqv2BZwMLXY20l4",
-      authDomain: "fila-salao-52932.firebaseapp.com",
-      databaseURL: "
+        function entrarNaFila(barbeiro) {
+            const nome = document.getElementById('nome').value.trim();
+            const whatsapp = document.getElementById('whatsapp').value.trim();
+
+            if (!nome || !whatsapp) {
+                alert('Por favor, preencha o seu nome e o WhatsApp.');
+                return;
+            }
+
+            // Envia os dados para o Firebase na rota em minúsculas
+            const dadosCliente = { nome, whatsapp, barbeiro, timestamp: Date.now() };
+            
+            db.ref('filas/' + barbeiro).push(dadosCliente)
+              .then(() => {
+                  console.log("Enviado com sucesso!");
+                  mostrarTelaEspera(nome, barbeiro);
+              })
+              .catch((erro) => {
+                  console.error("Erro ao enviar:", erro);
+                  alert("Erro ao entrar na fila. Verifique a ligação.");
+              });
+        }
+
+        function mostrarTelaEspera(nome, barbeiro) {
+            document.getElementById('tela-entrada').classList.add('escondido');
+            document.getElementById('tela-cliente').classList.remove('escondido');
+            document.getElementById('display-nome').innerText = nome;
+            document.getElementById('display-barbeiro').innerText = barbeiro;
+
+            // Ouve as atualizações da posição na fila
+            db.ref('filas/' + barbeiro).on('value', (snapshot) => {
+                const dados = snapshot.val();
+                if (!dados) {
+                    document.getElementById('display-posicao').innerText = '0';
+                    return;
+                }
+
+                const lista = Object.entries(dados).map(([id, val]) => ({ id, ...val }));
+                lista.sort((a, b) => a.timestamp - b.timestamp);
+
+                const minhaPosicao = lista.findIndex(item => item.nome === nome);
+                
+                if (minhaPosicao >= 0) {
+                    document.getElementById('display-posicao').innerText = minhaPosicao;
+                } else {
+                    document.getElementById('display-posicao').innerText = 'Atendido';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
