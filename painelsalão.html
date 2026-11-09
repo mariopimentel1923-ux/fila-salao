@@ -17,8 +17,8 @@
         .coluna-viny h2 { color: #fd7e14; }
         ul { list-style: none; padding: 0; }
         li { background: #fafafa; margin-bottom: 10px; padding: 12px; border-radius: 6px; border: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
-        .btn-proximo { background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-proximo:hover { background: #0056b3; }
+        .btn-proximo { background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-proximo:hover { background: #218838; }
         .vazio { text-align: center; color: #888; font-style: italic; margin-top: 20px; }
     </style>
 </head>
@@ -57,13 +57,10 @@
         function monitorarFila(barbeiroExibicao, chaveBusca1, chaveBusca2) {
             const idLista = 'lista-' + barbeiroExibicao;
             
-            // Ouve em simultâneo as variações em minúscula e maiúscula na raiz 'barbeiros'
             db.ref('barbeiros/' + chaveBusca1).on('value', (snapshot1) => {
                 db.ref('barbeiros/' + chaveBusca2).on('value', (snapshot2) => {
                     const dados1 = snapshot1.val() || {};
                     const dados2 = snapshot2.val() || {};
-                    
-                    // Junta os dados de ambas as chaves para garantir que nada fica de fora
                     const dadosCombinados = { ...dados1, ...dados2 };
                     
                     const ul = document.getElementById(idLista);
@@ -86,12 +83,13 @@
                             li.style.background = '#e9f7ef';
                         }
 
+                        // Passa os dados necessários para a função de chamar via WhatsApp
                         li.innerHTML = `
                             <div>
-                                **${index + 1}. ${cliente.nome}**<br>
+                                <strong>${index + 1}. ${cliente.nome}</strong><br>
                                 <small style="color: #666;">tel: ${cliente.whatsapp}</small>
                             </div>
-                            <button class="btn-proximo" onclick="removerCliente('${chaveBusca1}', '${cliente.id}')">chamar / concluir</button>
+                            <button class="btn-proximo" onclick="chamarCliente('${chaveBusca1}', '${cliente.id}', '${cliente.nome}', '${cliente.whatsapp}')">chamar / avisar</button>
                         `;
                         ul.appendChild(li);
                     });
@@ -99,13 +97,22 @@
             });
         }
 
-        function removerCliente(barbeiroChave, clienteId) {
-            if (confirm('Deseja avançar para o próximo cliente?')) {
+        function chamarCliente(barbeiroChave, clienteId, nomeCliente, telefoneCliente) {
+            if (confirm(`Deseja chamar ${nomeCliente} e avançar na fila?`)) {
+                // Formata o número do WhatsApp (remove caracteres não numéricos)
+                const telLimpo = telefoneCliente.replace(/\D/g, '');
+                
+                // Mensagem personalizada a avisar o cliente
+                const mensagem = encodeURIComponent(`Olá ${nomeCliente}, é a sua vez! O seu atendimento na barbearia vai começar.`);
+                
+                // Abre o WhatsApp Web / App com a mensagem pronta para enviar
+                window.open(`https://wa.me/55${telLimpo}?text=${mensagem}`, '_blank');
+
+                // Remove o cliente da fila após o chamado
                 db.ref('barbeiros/' + barbeiroChave + '/' + clienteId).remove();
             }
         }
 
-        // Monitoriza tanto a versão minúscula como a maiúscula para cada barbeiro
         monitorarFila('jalbanis', 'jalbanis', 'Jalbanis');
         monitorarFila('viny', 'viny', 'Viny');
     </script>
