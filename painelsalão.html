@@ -3,44 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>painel dos barbeiros - fila</title>
+    <title>painel de controle - salão</title>
     <!-- Firebase App (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; margin: 0; }
-        .painel-container { display: flex; gap: 20px; max-width: 900px; margin: 0 auto; flex-wrap: wrap; }
-        .coluna { flex: 1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 300px; }
-        h2 { text-align: center; margin-top: 0; padding-bottom: 10px; border-bottom: 2px solid #eee; text-transform: capitalize; }
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; margin: 0; text-align: center; }
+        h1 { margin-bottom: 30px; }
+        .painel-container { display: flex; gap: 20px; max-width: 900px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+        .coluna { flex: 1; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 320px; max-width: 400px; }
+        h2 { margin-top: 0; padding-bottom: 10px; border-bottom: 2px solid #eee; text-transform: capitalize; font-size: 22px; }
         .coluna-jalbanis h2 { color: #28a745; }
         .coluna-viny h2 { color: #fd7e14; }
-        ul { list-style: none; padding: 0; }
-        li { background: #fafafa; margin-bottom: 10px; padding: 12px; border-radius: 6px; border: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
-        .btn-proximo { background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-proximo:hover { background: #0056b3; }
-        .vazio { text-align: center; color: #888; font-style: italic; margin-top: 20px; }
+        .info-bloco { margin: 20px 0; font-size: 15px; color: #555; line-height: 1.5; }
+        .numero-destaque { font-size: 28px; font-weight: bold; color: #222; }
+        .btn-acao { width: 100%; padding: 12px; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 15px; }
+        .btn-jalbanis { background: #28a745; }
+        .btn-jalbanis:hover { background: #218838; }
+        .btn-viny { background: #fd7e14; }
+        .btn-viny:hover { background: #e06d0b; }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align: center; margin-bottom: 30px;">painel de atendimento - salão</h1>
+    <h1>painel de controle</h1>
 
     <div class="painel-container">
         <!-- FILA DO JALBANIS -->
         <div class="coluna coluna-jalbanis">
-            <h2>jalbanis</h2>
-            <ul id="lista-jalbanis">
-                <li class="vazio">a carregar fila...</li>
-            </ul>
+            <h2>fila do jalbanis</h2>
+            <div class="info-bloco">
+                na cadeira agora:<br>
+                <span id="atual-jalbanis" class="numero-destaque">nenhum</span>
+            </div>
+            <div class="info-bloco">
+                próximo da fila (recebe aviso):<br>
+                <span id="proximo-jalbanis" class="numero-destaque" style="font-size: 20px; color: #666;">ninguém</span>
+            </div>
+            <button class="btn-acao btn-jalbanis" onclick="chamarProximo('jalbanis', 'Jalbanis')">chamar próximo (jalbanis)</button>
         </div>
 
         <!-- FILA DO VINY -->
         <div class="coluna coluna-viny">
-            <h2>viny</h2>
-            <ul id="lista-viny">
-                <li class="vazio">a carregar fila...</li>
-            </ul>
+            <h2>fila do viny</h2>
+            <div class="info-bloco">
+                na cadeira agora:<br>
+                <span id="atual-viny" class="numero-destaque">nenhum</span>
+            </div>
+            <div class="info-bloco">
+                próximo da fila (recebe aviso):<br>
+                <span id="proximo-viny" class="numero-destaque" style="font-size: 20px; color: #666;">ninguém</span>
+            </div>
+            <button class="btn-acao btn-viny" onclick="chamarProximo('viny', 'Viny')">chamar próximo (viny)</button>
         </div>
     </div>
 
@@ -54,61 +69,72 @@
         }
         const db = firebase.database();
 
+        // Guarda em memória os clientes atuais de cada fila para sabermos quem é o próximo a avisar
+        let filasEmMemoria = {
+            jalbanis: [],
+            viny: []
+        };
+
         function monitorarFila(barbeiroExibicao, chaveBusca1, chaveBusca2) {
-            const idLista = 'lista-' + barbeiroExibicao;
-            
             db.ref('barbeiros/' + chaveBusca1).on('value', (snapshot1) => {
                 db.ref('barbeiros/' + chaveBusca2).on('value', (snapshot2) => {
                     const dados1 = snapshot1.val() || {};
                     const dados2 = snapshot2.val() || {};
                     const dadosCombinados = { ...dados1, ...dados2 };
                     
-                    const ul = document.getElementById(idLista);
-                    if (!ul) return;
-                    ul.innerHTML = '';
-
-                    if (Object.keys(dadosCombinados).length === 0) {
-                        ul.innerHTML = '<li class="vazio">nenhum cliente na fila</li>';
-                        return;
-                    }
-
                     const listaClientes = Object.entries(dadosCombinados).map(([id, val]) => ({ id, ...val }));
                     listaClientes.sort((a, b) => a.timestamp - b.timestamp);
 
-                    listaClientes.forEach((cliente, index) => {
-                        const li = document.createElement('li');
-                        
-                        if (index === 0) {
-                            li.style.borderColor = '#28a745';
-                            li.style.background = '#e9f7ef';
-                        }
+                    filasEmMemoria[barbeiroExibicao] = listaClientes;
 
-                        li.innerHTML = `
-                            <div>
-                                <strong>${index + 1}. ${cliente.nome}</strong><br>
-                                <small style="color: #666;">tel: ${cliente.whatsapp}</small>
-                            </div>
-                            <button class="btn-proximo" onclick="chamarProximo('${chaveBusca1}', '${cliente.id}', '${cliente.nome}', '${barbeiroExibicao}', '${cliente.whatsapp}')">próximo</button>
-                        `;
-                        ul.appendChild(li);
-                    });
+                    // Atualiza a interface simples
+                    const elAtual = document.getElementById('atual-' + barbeiroExibicao);
+                    const elProximo = document.getElementById('proximo-' + barbeiroExibicao);
+
+                    if (listaClientes.length === 0) {
+                        elAtual.innerText = 'nenhum';
+                        elProximo.innerText = 'ninguém';
+                    } else {
+                        // O primeiro da lista está na cadeira
+                        elAtual.innerText = listaClientes[0].nome;
+                        
+                        // O segundo da lista é o próximo que vai receber o WhatsApp de aviso
+                        if (listaClientes.length > 1) {
+                            elProximo.innerText = listaClientes[1].nome;
+                        } else {
+                            elProximo.innerText = 'ninguém na espera';
+                        }
+                    }
                 });
             });
         }
 
-        function chamarProximo(barbeiroChave, clienteId, nomeCliente, nomeBarbeiro, telefoneCliente) {
-            if (confirm(`Deseja chamar ${nomeCliente} e enviar a mensagem de aviso?`)) {
-                const telLimpo = telefoneCliente.replace(/\D/g, '');
-                
-                // Mensagem exata que definiste
-                const textoMensagem = `olá, ${nomeCliente}! você é o próximo da fila com o ${nomeBarbeiro}. vá se aproximando da barbearia. lembrando que a tolerância de espera é de apenas 5 minutos.`;
-                const mensagem = encodeURIComponent(textoMensagem);
-                
-                // Abre o WhatsApp com a mensagem pronta
-                window.open(`https://wa.me/55${telLimpo}?text=${mensagem}`, '_blank');
+        function chamarProximo(barbeiroExibicao, barbeiroChave) {
+            const lista = filasEmMemoria[barbeiroExibicao];
 
-                // Remove o cliente da fila correspondente
-                db.ref('barbeiros/' + barbeiroChave + '/' + clienteId).remove();
+            if (!lista || lista.length === 0) {
+                alert('Não há clientes na fila neste momento.');
+                return;
+            }
+
+            // O cliente atual na cadeira sai da fila
+            const clienteAtual = lista[0];
+
+            if (confirm(`Concluir atendimento de ${clienteAtual.nome} e avançar a fila?`)) {
+                // Remove o atual da base de dados
+                db.ref('barbeiros/' + barbeiroChave + '/' + clienteAtual.id).remove()
+                  .then(() => {
+                      // Se existir um próximo na fila após remover o atual, envia a mensagem para ele!
+                      if (lista.length > 1) {
+                          const proximoCliente = lista[1];
+                          const telLimpo = proximoCliente.whatsapp.replace(/\D/g, '');
+                          
+                          const textoMensagem = `olá, ${proximoCliente.nome}! você é o próximo da fila com o ${barbeiroExibicao}. vá se aproximando da barbearia. lembrando que a tolerância de espera é de apenas 5 minutos.`;
+                          const mensagem = encodeURIComponent(textoMensagem);
+                          
+                          window.open(`https://wa.me/55${telLimpo}?text=${mensagem}`, '_blank');
+                      }
+                  });
             }
         }
 
