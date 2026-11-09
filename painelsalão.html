@@ -218,9 +218,12 @@
       const number = phone(client.whatsapp);
       if (!number) return null;
 
-      const message =
-        `Olá, ${client.nome}! Você é o próximo da fila com ` +
-        `${names[key]}. Já pode vir para o salão.`;
+const message =
+  `Olá, ${client.nome}! Você é o próximo da fila com ${names[key]}. ` +
+  `Já pode vir para o salão. ` +
+  `Atenção: quando chegar a sua vez, se você ainda não estiver no salão, ` +
+  `terá uma tolerância de 5 minutos para chegar. Após esse prazo, ` +
+  `você perderá a vez e precisará se cadastrar novamente na fila.`;
 
       return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
     }
