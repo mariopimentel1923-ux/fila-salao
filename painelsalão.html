@@ -45,7 +45,6 @@
     </div>
 
     <script>
-        // Configuração do Firebase com a URL exata do projeto
         const firebaseConfig = {
             databaseURL: "https://fila-salao-52932-default-rtdb.firebaseio.com/"
         };
@@ -55,53 +54,60 @@
         }
         const db = firebase.database();
 
-        function monitorarFila(barbeiro) {
-            const idLista = 'lista-' + barbeiro;
-            // Lê diretamente da raiz 'barbeiros' onde os clientes estão a entrar
-            const refFila = db.ref('barbeiros/' + barbeiro);
-
-            refFila.on('value', (snapshot) => {
-                const dados = snapshot.val();
-                const ul = document.getElementById(idLista);
-                if (!ul) return;
-                ul.innerHTML = '';
-
-                if (!dados) {
-                    ul.innerHTML = '<li class="vazio">nenhum cliente na fila</li>';
-                    return;
-                }
-
-                const listaClientes = Object.entries(dados).map(([id, val]) => ({ id, ...val }));
-                listaClientes.sort((a, b) => a.timestamp - b.timestamp);
-
-                listaClientes.forEach((cliente, index) => {
-                    const li = document.createElement('li');
+        function monitorarFila(barbeiroExibicao, chaveBusca1, chaveBusca2) {
+            const idLista = 'lista-' + barbeiroExibicao;
+            
+            // Ouve em simultâneo as variações em minúscula e maiúscula na raiz 'barbeiros'
+            db.ref('barbeiros/' + chaveBusca1).on('value', (snapshot1) => {
+                db.ref('barbeiros/' + chaveBusca2).on('value', (snapshot2) => {
+                    const dados1 = snapshot1.val() || {};
+                    const dados2 = snapshot2.val() || {};
                     
-                    if (index === 0) {
-                        li.style.borderColor = '#28a745';
-                        li.style.background = '#e9f7ef';
+                    // Junta os dados de ambas as chaves para garantir que nada fica de fora
+                    const dadosCombinados = { ...dados1, ...dados2 };
+                    
+                    const ul = document.getElementById(idLista);
+                    if (!ul) return;
+                    ul.innerHTML = '';
+
+                    if (Object.keys(dadosCombinados).length === 0) {
+                        ul.innerHTML = '<li class="vazio">nenhum cliente na fila</li>';
+                        return;
                     }
 
-                    li.innerHTML = `
-                        <div>
-                            <strong>${index + 1}. ${cliente.nome}</strong><br>
-                            <small style="color: #666;">tel: ${cliente.whatsapp}</small>
-                        </div>
-                        <button class="btn-proximo" onclick="removerCliente('${barbeiro}', '${cliente.id}')">chamar / concluir</button>
-                    `;
-                    ul.appendChild(li);
+                    const listaClientes = Object.entries(dadosCombinados).map(([id, val]) => ({ id, ...val }));
+                    listaClientes.sort((a, b) => a.timestamp - b.timestamp);
+
+                    listaClientes.forEach((cliente, index) => {
+                        const li = document.createElement('li');
+                        
+                        if (index === 0) {
+                            li.style.borderColor = '#28a745';
+                            li.style.background = '#e9f7ef';
+                        }
+
+                        li.innerHTML = `
+                            <div>
+                                **${index + 1}. ${cliente.nome}**<br>
+                                <small style="color: #666;">tel: ${cliente.whatsapp}</small>
+                            </div>
+                            <button class="btn-proximo" onclick="removerCliente('${chaveBusca1}', '${cliente.id}')">chamar / concluir</button>
+                        `;
+                        ul.appendChild(li);
+                    });
                 });
             });
         }
 
-        function removerCliente(barbeiro, clienteId) {
+        function removerCliente(barbeiroChave, clienteId) {
             if (confirm('Deseja avançar para o próximo cliente?')) {
-                db.ref('barbeiros/' + barbeiro + '/' + clienteId).remove();
+                db.ref('barbeiros/' + barbeiroChave + '/' + clienteId).remove();
             }
         }
 
-        monitorarFila('jalbanis');
-        monitorarFila('viny');
+        // Monitoriza tanto a versão minúscula como a maiúscula para cada barbeiro
+        monitorarFila('jalbanis', 'jalbanis', 'Jalbanis');
+        monitorarFila('viny', 'viny', 'Viny');
     </script>
 </body>
 </html>
