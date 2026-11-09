@@ -1,143 +1,506 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>painel de controle - salão</title>
-    <!-- Firebase App (Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <!-- Firebase Realtime Database -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; margin: 0; text-align: center; }
-        h1 { margin-bottom: 30px; }
-        .painel-container { display: flex; gap: 20px; max-width: 900px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
-        .coluna { flex: 1; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 320px; max-width: 400px; }
-        h2 { margin-top: 0; padding-bottom: 10px; border-bottom: 2px solid #eee; text-transform: capitalize; font-size: 22px; }
-        .coluna-jalbanis h2 { color: #28a745; }
-        .coluna-viny h2 { color: #fd7e14; }
-        .info-bloco { margin: 20px 0; font-size: 15px; color: #555; line-height: 1.5; }
-        .numero-destaque { font-size: 26px; font-weight: bold; color: #222; }
-        .btn-acao { width: 100%; padding: 12px; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 15px; }
-        .btn-jalbanis { background: #28a745; }
-        .btn-jalbanis:hover { background: #218838; }
-        .btn-viny { background: #fd7e14; }
-        .btn-viny:hover { background: #e06d0b; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel dos barbeiros</title>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #eef1f5;
+      color: #202b36;
+      font: 16px system-ui, sans-serif;
+    }
+
+    main {
+      max-width: 1040px;
+      margin: auto;
+      padding: 32px 18px;
+    }
+
+    header { margin-bottom: 26px; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    h2 { margin: 0; font-size: 24px; }
+    p { line-height: 1.5; }
+    .muted { color: #637181; }
+    #connection { font-size: 14px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      border-top: 5px solid var(--accent);
+      box-shadow: 0 5px 22px #202b3610;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      background: #eef1f5;
+      padding: 6px 10px;
+      border-radius: 30px;
+      font-size: 13px;
+    }
+
+    .chair {
+      background: #f5f7fa;
+      border-radius: 12px;
+      padding: 18px;
+      margin: 22px 0 16px;
+    }
+
+    .label {
+      font-size: 13px;
+      color: #637181;
+      margin-bottom: 6px;
+    }
+
+    .name {
+      font-size: 25px;
+      font-weight: 750;
+      overflow-wrap: anywhere;
+    }
+
+    .next {
+      padding: 0 2px 18px;
+      overflow-wrap: anywhere;
+    }
+
+    button, .whatsapp {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 9px;
+      font: 600 15px system-ui;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .whatsapp {
+      margin-top: 10px;
+      color: #146c36;
+      border: 1px solid #b9dfc5;
+      background: #effaf2;
+    }
+
+    .whatsapp[hidden] { display: none; }
+
+    .feedback {
+      font-size: 14px;
+      min-height: 22px;
+      margin: 12px 0;
+      color: #526170;
+    }
+
+    ol { padding-left: 26px; margin-bottom: 0; }
+
+    li {
+      padding: 10px 0;
+      border-top: 1px solid #edf0f3;
+      overflow-wrap: anywhere;
+    }
+
+    li span {
+      display: block;
+      color: #637181;
+      font-size: 13px;
+    }
+
+    .empty { color: #637181; font-size: 14px; }
+
+    .note {
+      font-size: 14px;
+      color: #637181;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 680px) {
+      .grid { grid-template-columns: 1fr; }
+      main { padding-top: 22px; }
+      .card { padding: 20px; }
+    }
+  </style>
 </head>
+
 <body>
+  <main>
+    <header>
+      <h1>Painel dos barbeiros</h1>
+      <div class="muted">
+        Atenda o primeiro e avise quem vem em seguida.
+      </div>
+      <p id="connection" role="status">Conectando à fila…</p>
+    </header>
 
-    <h1>painel de controle</h1>
+    <div class="grid" id="panels"></div>
 
-    <div class="painel-container">
-        <!-- FILA DO JALBANIS -->
-        <div class="coluna coluna-jalbanis">
-            <h2>fila do jalbanis</h2>
-            <div class="info-bloco">
-                na cadeira agora:<br>
-                <span id="atual-jalbanis" class="numero-destaque">nenhum</span>
-            </div>
-            <div class="info-bloco">
-                próximo da fila:<br>
-                <span id="proximo-jalbanis" class="numero-destaque" style="font-size: 20px; color: #666;">ninguém</span>
-            </div>
-            <button class="btn-acao btn-jalbanis" onclick="chamarProximo('jalbanis', 'Jalbanis')">chamar próximo (jalbanis)</button>
-        </div>
+    <p class="note">
+      Ao chamar um cliente, o WhatsApp do próximo abre com a mensagem pronta.
+      Confira e toque em Enviar. Se a janela não abrir, use o botão de aviso.
+    </p>
+  </main>
 
-        <!-- FILA DO VINY -->
-        <div class="coluna coluna-viny">
-            <h2>fila do viny</h2>
-            <div class="info-bloco">
-                na cadeira agora:<br>
-                <span id="atual-viny" class="numero-destaque">nenhum</span>
-            </div>
-            <div class="info-bloco">
-                próximo da fila:<br>
-                <span id="proximo-viny" class="numero-destaque" style="font-size: 20px; color: #666;">ninguém</span>
-            </div>
-            <button class="btn-acao btn-viny" onclick="chamarProximo('viny', 'Viny')">chamar próximo (viny)</button>
-        </div>
-    </div>
+  <script>
+    'use strict';
 
-    <script>
-        const firebaseConfig = {
-            databaseURL: "https://fila-salao-52932-default-rtdb.firebaseio.com/"
-        };
-        
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.database();
+    const names = {
+      jalbanis: 'Jalbanis',
+      viny: 'Viny'
+    };
 
-        let filasEmMemoria = {
-            jalbanis: [],
-            viny: []
-        };
+    const state = {};
+    let connected = false;
+    let db;
 
-        function monitorarFila(barbeiroExibicao, chaveBusca1, chaveBusca2) {
-            db.ref('barbeiros/' + chaveBusca1).on('value', (snapshot1) => {
-                db.ref('barbeiros/' + chaveBusca2).on('value', (snapshot2) => {
-                    const dados1 = snapshot1.val() || {};
-                    const dados2 = snapshot2.val() || {};
-                    const dadosCombinados = { ...dados1, ...dados2 };
-                    
-                    const listaClientes = Object.entries(dadosCombinados).map(([id, val]) => ({ id, ...val }));
-                    listaClientes.sort((a, b) => a.timestamp - b.timestamp);
+    function clients(data) {
+      return Object.entries(data || {})
+        .filter(([, value]) =>
+          value &&
+          typeof value === 'object' &&
+          typeof value.nome === 'string'
+        )
+        .map(([id, value]) => ({ ...value, id }))
+        .sort((a, b) =>
+          (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0) ||
+          a.id.localeCompare(b.id)
+        );
+    }
 
-                    filasEmMemoria[barbeiroExibicao] = listaClientes;
+    function parts(data) {
+      const all = clients(data);
 
-                    const elAtual = document.getElementById('atual-' + barbeiroExibicao);
-                    const elProximo = document.getElementById('proximo-' + barbeiroExibicao);
+      return {
+        current: all.find(client => client.status === 'atendendo') || null,
+        waiting: all.filter(client => client.status !== 'atendendo')
+      };
+    }
 
-                    if (listaClientes.length === 0) {
-                        elAtual.innerText = 'nenhum';
-                        elProximo.innerText = 'ninguém';
-                    } else {
-                        elAtual.innerText = listaClientes[0].nome;
-                        
-                        if (listaClientes.length > 1) {
-                            elProximo.innerText = listaClientes[1].nome;
-                        } else {
-                            elProximo.innerText = 'ninguém na espera';
-                        }
-                    }
-                });
-            });
-        }
+    function phone(value) {
+      let number = String(value || '').replace(/\D/g, '');
 
-        function chamarProximo(barbeiroExibicao, barbeiroChave) {
-            const lista = filasEmMemoria[barbeiroExibicao];
+      if (number.length === 10 || number.length === 11) {
+        number = '55' + number;
+      }
 
-            if (!lista || lista.length === 0) {
-                alert('Não há clientes na fila neste momento.');
-                return;
+      return /^55\d{10,11}$/.test(number) ? number : null;
+    }
+
+    function whatsapp(client, key) {
+      const number = phone(client.whatsapp);
+      if (!number) return null;
+
+      const message =
+        `Olá, ${client.nome}! Você é o próximo da fila com ` +
+        `${names[key]}. Já pode vir para o salão.`;
+
+      return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+    }
+
+    function el(tag, text, className) {
+      const node = document.createElement(tag);
+
+      if (text !== undefined) node.textContent = text;
+      if (className) node.className = className;
+
+      return node;
+    }
+
+    for (const key of Object.keys(names)) {
+      const card = el('section', undefined, 'card');
+
+      card.style.setProperty(
+        '--accent',
+        key === 'jalbanis' ? '#229b50' : '#e97a12'
+      );
+
+      const top = el('div', undefined, 'top');
+      const count = el('span', 'Carregando…', 'badge');
+      top.append(el('h2', names[key]), count);
+
+      const chair = el('div', undefined, 'chair');
+      const current = el('div', '—', 'name');
+
+      chair.append(
+        el('div', 'NA CADEIRA AGORA', 'label'),
+        current
+      );
+
+      const next = el('div', undefined, 'next');
+      const nextName = el('strong', '—');
+
+      next.append(
+        el('div', 'PRÓXIMO A SER ATENDIDO', 'label'),
+        nextName
+      );
+
+      const action = el('button', 'Carregando…');
+      action.disabled = true;
+      action.onclick = () => advance(key);
+
+      const link = el('a', 'Avisar próximo no WhatsApp', 'whatsapp');
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.hidden = true;
+
+      const feedback = el('p', '', 'feedback');
+      feedback.setAttribute('role', 'status');
+
+      const list = el('ol');
+      const empty = el('p', 'Fila vazia.', 'empty');
+
+      card.append(
+        top,
+        chair,
+        next,
+        action,
+        link,
+        feedback,
+        el('h3', 'Fila de espera'),
+        empty,
+        list
+      );
+
+      document.getElementById('panels').append(card);
+
+      state[key] = {
+        data: null,
+        loaded: false,
+        busy: false,
+        error: false,
+        count,
+        current,
+        nextName,
+        action,
+        link,
+        feedback,
+        list,
+        empty
+      };
+    }
+
+    function render(key) {
+      const s = state[key];
+      const queue = parts(s.data);
+
+      s.current.textContent = queue.current
+        ? queue.current.nome
+        : 'Ninguém em atendimento';
+
+      s.nextName.textContent =
+        queue.waiting[0]?.nome || 'Ninguém aguardando';
+
+      s.count.textContent = `${queue.waiting.length} aguardando`;
+
+      s.action.textContent = s.busy
+        ? 'Salvando…'
+        : queue.current
+          ? queue.waiting.length
+            ? 'Concluir e chamar próximo'
+            : 'Concluir atendimento'
+          : 'Chamar primeiro da fila';
+
+      s.action.disabled =
+        !connected ||
+        !s.loaded ||
+        s.busy ||
+        s.error ||
+        (!queue.current && !queue.waiting.length);
+
+      s.list.replaceChildren();
+      s.empty.hidden = queue.waiting.length > 0;
+
+      queue.waiting.forEach((client, index) => {
+        const row = el('li');
+
+        row.append(
+          el('strong', client.nome),
+          el(
+            'span',
+            index === 0 ? 'Próximo a ser atendido' : 'Aguardando'
+          )
+        );
+
+        s.list.append(row);
+      });
+
+      const url = queue.current && queue.waiting[0]
+        ? whatsapp(queue.waiting[0], key)
+        : null;
+
+      s.link.hidden = !url;
+
+      if (url) {
+        s.link.href = url;
+      } else {
+        s.link.removeAttribute('href');
+      }
+    }
+
+    async function advance(key) {
+      const s = state[key];
+      if (s.action.disabled) return;
+
+      const before = parts(s.data);
+      const expectedCurrent = before.current?.id || null;
+      const expectedNext = before.waiting[0]?.id || null;
+
+      s.busy = true;
+      s.feedback.textContent = 'Atualizando atendimento…';
+      render(key);
+
+      // Abre durante o clique para evitar bloqueio de janela pelo navegador.
+      const shouldNotify = before.waiting.length > 1;
+      const popup = shouldNotify
+        ? window.open('about:blank', '_blank')
+        : null;
+
+      if (popup) popup.opener = null;
+
+      try {
+        const result = await db.ref(`barbeiros/${key}`).transaction(
+          data => {
+            if (!data) return;
+
+            const queue = parts(data);
+
+            // Impede que dois painéis avancem o mesmo atendimento.
+            if (
+              (queue.current?.id || null) !== expectedCurrent ||
+              (queue.waiting[0]?.id || null) !== expectedNext
+            ) {
+              return;
             }
 
-            const clienteAtual = lista[0];
-
-            if (confirm(`Concluir atendimento de ${clienteAtual.nome} e avançar a fila?`)) {
-                // 1. Remove o cliente atual da base de dados (sai da cadeira)
-                db.ref('barbeiros + '/' + barbeiroChave + '/' + clienteAtual.id).remove()
-                  .then(() => {
-                      // 2. Verifica se agora existe um NOVO próximo na fila (que era o segundo e passa a ser o primeiro)
-                      // Como a lista em memória ainda tem o array antigo, o novo próximo é o índice 1 da lista atual.
-                      if (lista.length > 1) {
-                          const novoProximo = lista[1];
-                          const telLimpo = novoProximo.whatsapp.replace(/\D/g, '');
-                          
-                          // Mensagem exata destinada ao próximo da fila
-                          const textoMensagem = `olá, ${novoProximo.nome}! você é o próximo da fila com o ${barbeiroExibicao}. vá se aproximando da barbearia. lembrando que a tolerância de espera é de apenas 5 minutos.`;
-                          const mensagem = encodeURIComponent(textoMensagem);
-                          
-                          // Dispara o WhatsApp apenas para o próximo
-                          window.open(`https://wa.me/55${telLimpo}?text=${mensagem}`, '_blank');
-                      }
-                  });
+            if (queue.current) {
+              delete data[queue.current.id];
             }
+
+            if (queue.waiting[0]) {
+              data[queue.waiting[0].id].status = 'atendendo';
+            }
+
+            return data;
+          },
+          undefined,
+          false
+        );
+
+        if (!result.committed) {
+          if (popup) popup.close();
+
+          s.feedback.textContent =
+            'A fila mudou em outro painel. Confira e tente novamente.';
+
+          return;
         }
 
-        monitorarFila('jalbanis', 'jalbanis', 'Jalbanis');
-        monitorarFila('viny', 'viny', 'Viny');
-    </script>
+        s.data = result.snapshot.val();
+
+        const after = parts(s.data);
+        const target = after.current && after.waiting[0];
+        const url = target ? whatsapp(target, key) : null;
+
+        if (url) {
+          if (popup) popup.location.replace(url);
+
+          s.feedback.textContent = popup
+            ? 'Atendimento atualizado. Envie a mensagem na aba do WhatsApp.'
+            : 'Atendimento atualizado. Clique em Avisar próximo no WhatsApp.';
+        } else {
+          if (popup) popup.close();
+
+          s.feedback.textContent = target
+            ? 'Atendimento atualizado. O WhatsApp do próximo está inválido; confira o cadastro.'
+            : after.current
+              ? 'Atendimento iniciado. Ninguém mais aguardando.'
+              : 'Atendimento concluído. Fila vazia.';
+        }
+      } catch (error) {
+        if (popup) popup.close();
+
+        s.feedback.textContent =
+          'Não foi possível atualizar: ' + error.message;
+      } finally {
+        s.busy = false;
+        render(key);
+      }
+    }
+
+    try {
+      if (typeof firebase === 'undefined') {
+        throw new Error(
+          'Não foi possível carregar o Firebase. Confira a internet e recarregue a página.'
+        );
+      }
+
+      if (!firebase.apps.length) {
+        firebase.initializeApp({
+          databaseURL: 'https://fila-salao-52932-default-rtdb.firebaseio.com/'
+        });
+      }
+
+      db = firebase.database();
+
+      db.ref('.info/connected').on('value', snapshot => {
+        connected = snapshot.val() === true;
+
+        document.getElementById('connection').textContent = connected
+          ? '● Conectado • fila em tempo real'
+          : 'Sem conexão • aguardando reconectar';
+
+        Object.keys(names).forEach(render);
+      });
+
+      for (const key of Object.keys(names)) {
+        db.ref(`barbeiros/${key}`).on(
+          'value',
+          snapshot => {
+            state[key].data = snapshot.val();
+            state[key].loaded = true;
+            state[key].error = false;
+            render(key);
+          },
+          error => {
+            state[key].error = true;
+            state[key].feedback.textContent =
+              'Não foi possível ler a fila: ' + error.message;
+
+            render(key);
+          }
+        );
+      }
+    } catch (error) {
+      document.getElementById('connection').textContent = error.message;
+    }
+  </script>
 </body>
 </html>
