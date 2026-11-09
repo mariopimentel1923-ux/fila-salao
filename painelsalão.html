@@ -17,7 +17,7 @@
         .coluna-jalbanis h2 { color: #28a745; }
         .coluna-viny h2 { color: #fd7e14; }
         .info-bloco { margin: 20px 0; font-size: 15px; color: #555; line-height: 1.5; }
-        .numero-destaque { font-size: 28px; font-weight: bold; color: #222; }
+        .numero-destaque { font-size: 26px; font-weight: bold; color: #222; }
         .btn-acao { width: 100%; padding: 12px; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 15px; }
         .btn-jalbanis { background: #28a745; }
         .btn-jalbanis:hover { background: #218838; }
@@ -38,7 +38,7 @@
                 <span id="atual-jalbanis" class="numero-destaque">nenhum</span>
             </div>
             <div class="info-bloco">
-                próximo da fila (recebe aviso):<br>
+                próximo da fila:<br>
                 <span id="proximo-jalbanis" class="numero-destaque" style="font-size: 20px; color: #666;">ninguém</span>
             </div>
             <button class="btn-acao btn-jalbanis" onclick="chamarProximo('jalbanis', 'Jalbanis')">chamar próximo (jalbanis)</button>
@@ -52,7 +52,7 @@
                 <span id="atual-viny" class="numero-destaque">nenhum</span>
             </div>
             <div class="info-bloco">
-                próximo da fila (recebe aviso):<br>
+                próximo da fila:<br>
                 <span id="proximo-viny" class="numero-destaque" style="font-size: 20px; color: #666;">ninguém</span>
             </div>
             <button class="btn-acao btn-viny" onclick="chamarProximo('viny', 'Viny')">chamar próximo (viny)</button>
@@ -69,7 +69,6 @@
         }
         const db = firebase.database();
 
-        // Guarda em memória os clientes atuais de cada fila para sabermos quem é o próximo a avisar
         let filasEmMemoria = {
             jalbanis: [],
             viny: []
@@ -87,7 +86,6 @@
 
                     filasEmMemoria[barbeiroExibicao] = listaClientes;
 
-                    // Atualiza a interface simples
                     const elAtual = document.getElementById('atual-' + barbeiroExibicao);
                     const elProximo = document.getElementById('proximo-' + barbeiroExibicao);
 
@@ -95,10 +93,8 @@
                         elAtual.innerText = 'nenhum';
                         elProximo.innerText = 'ninguém';
                     } else {
-                        // O primeiro da lista está na cadeira
                         elAtual.innerText = listaClientes[0].nome;
                         
-                        // O segundo da lista é o próximo que vai receber o WhatsApp de aviso
                         if (listaClientes.length > 1) {
                             elProximo.innerText = listaClientes[1].nome;
                         } else {
@@ -117,21 +113,23 @@
                 return;
             }
 
-            // O cliente atual na cadeira sai da fila
             const clienteAtual = lista[0];
 
             if (confirm(`Concluir atendimento de ${clienteAtual.nome} e avançar a fila?`)) {
-                // Remove o atual da base de dados
-                db.ref('barbeiros/' + barbeiroChave + '/' + clienteAtual.id).remove()
+                // 1. Remove o cliente atual da base de dados (sai da cadeira)
+                db.ref('barbeiros + '/' + barbeiroChave + '/' + clienteAtual.id).remove()
                   .then(() => {
-                      // Se existir um próximo na fila após remover o atual, envia a mensagem para ele!
+                      // 2. Verifica se agora existe um NOVO próximo na fila (que era o segundo e passa a ser o primeiro)
+                      // Como a lista em memória ainda tem o array antigo, o novo próximo é o índice 1 da lista atual.
                       if (lista.length > 1) {
-                          const proximoCliente = lista[1];
-                          const telLimpo = proximoCliente.whatsapp.replace(/\D/g, '');
+                          const novoProximo = lista[1];
+                          const telLimpo = novoProximo.whatsapp.replace(/\D/g, '');
                           
-                          const textoMensagem = `olá, ${proximoCliente.nome}! você é o próximo da fila com o ${barbeiroExibicao}. vá se aproximando da barbearia. lembrando que a tolerância de espera é de apenas 5 minutos.`;
+                          // Mensagem exata destinada ao próximo da fila
+                          const textoMensagem = `olá, ${novoProximo.nome}! você é o próximo da fila com o ${barbeiroExibicao}. vá se aproximando da barbearia. lembrando que a tolerância de espera é de apenas 5 minutos.`;
                           const mensagem = encodeURIComponent(textoMensagem);
                           
+                          // Dispara o WhatsApp apenas para o próximo
                           window.open(`https://wa.me/55${telLimpo}?text=${mensagem}`, '_blank');
                       }
                   });
