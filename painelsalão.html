@@ -9,7 +9,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -24,12 +26,37 @@
       padding: 32px 18px;
     }
 
-    header { margin-bottom: 26px; }
-    h1 { margin: 0 0 8px; font-size: 28px; }
-    h2 { margin: 0; font-size: 24px; }
-    p { line-height: 1.5; }
-    .muted { color: #637181; }
-    #connection { font-size: 14px; }
+    header {
+      margin-bottom: 26px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    h3 {
+      margin-top: 24px;
+      font-size: 18px;
+    }
+
+    p {
+      line-height: 1.5;
+    }
+
+    .muted,
+    #connection {
+      color: #637181;
+    }
+
+    #connection {
+      font-size: 14px;
+    }
 
     .grid {
       display: grid;
@@ -38,6 +65,7 @@
     }
 
     .card {
+      min-width: 0;
       background: white;
       border-radius: 16px;
       padding: 24px;
@@ -47,6 +75,7 @@
 
     .top {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
@@ -83,45 +112,37 @@
       overflow-wrap: anywhere;
     }
 
-    button, .whatsapp {
+    button {
       display: block;
       width: 100%;
+      min-height: 50px;
       padding: 14px;
       border: 0;
       border-radius: 9px;
-      font: 600 15px system-ui;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-    }
-
-    button {
       background: var(--accent);
       color: white;
+      font: 600 16px system-ui, sans-serif;
+      cursor: pointer;
+      touch-action: manipulation;
     }
 
     button:disabled {
-      opacity: .5;
+      opacity: 0.5;
       cursor: not-allowed;
     }
-
-    .whatsapp {
-      margin-top: 10px;
-      color: #146c36;
-      border: 1px solid #b9dfc5;
-      background: #effaf2;
-    }
-
-    .whatsapp[hidden] { display: none; }
 
     .feedback {
       font-size: 14px;
       min-height: 22px;
       margin: 12px 0;
       color: #526170;
+      overflow-wrap: anywhere;
     }
 
-    ol { padding-left: 26px; margin-bottom: 0; }
+    ol {
+      padding-left: 26px;
+      margin-bottom: 0;
+    }
 
     li {
       padding: 10px 0;
@@ -133,20 +154,39 @@
       display: block;
       color: #637181;
       font-size: 13px;
+      margin-top: 3px;
     }
 
-    .empty { color: #637181; font-size: 14px; }
+    .empty,
+    .note {
+      color: #637181;
+      font-size: 14px;
+    }
 
     .note {
-      font-size: 14px;
-      color: #637181;
       margin-top: 24px;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     @media (max-width: 680px) {
-      .grid { grid-template-columns: 1fr; }
-      main { padding-top: 22px; }
-      .card { padding: 20px; }
+      main {
+        padding: 22px 14px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
     }
   </style>
 </head>
@@ -155,17 +195,28 @@
   <main>
     <header>
       <h1>Painel dos barbeiros</h1>
+
       <div class="muted">
-        Atenda o primeiro e avise quem vem em seguida.
+        Chame um cliente e avise o próximo com um único botão.
       </div>
-      <p id="connection" role="status">Conectando à fila…</p>
+
+      <p id="connection" role="status">
+        Conectando à fila…
+      </p>
     </header>
 
     <div class="grid" id="panels"></div>
 
     <p class="note">
-      Ao chamar um cliente, o WhatsApp do próximo abre com a mensagem pronta.
-      Confira e toque em Enviar. Se a janela não abrir, use o botão de aviso.
+      O botão “Chamar próximo” encerra o atendimento atual,
+      chama o primeiro da espera e abre o WhatsApp para avisar
+      quem vem em seguida. No WhatsApp, toque em Enviar
+      e depois volte para este painel.
+    </p>
+
+    <p class="note">
+      Cada clique avança a fila. A tolerância de 5 minutos
+      é informada na mensagem; não há retirada automática por tempo.
     </p>
   </main>
 
@@ -178,6 +229,7 @@
     };
 
     const state = {};
+
     let connected = false;
     let db;
 
@@ -188,9 +240,13 @@
           typeof value === 'object' &&
           typeof value.nome === 'string'
         )
-        .map(([id, value]) => ({ ...value, id }))
+        .map(([id, value]) => ({
+          ...value,
+          id
+        }))
         .sort((a, b) =>
-          (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0) ||
+          (Number(a.timestamp) || 0) -
+          (Number(b.timestamp) || 0) ||
           a.id.localeCompare(b.id)
         );
     }
@@ -199,8 +255,11 @@
       const all = clients(data);
 
       return {
-        current: all.find(client => client.status === 'atendendo') || null,
-        waiting: all.filter(client => client.status !== 'atendendo')
+        current:
+          all.find(client => client.status === 'atendendo') || null,
+
+        waiting:
+          all.filter(client => client.status !== 'atendendo')
       };
     }
 
@@ -211,28 +270,43 @@
         number = '55' + number;
       }
 
-      return /^55\d{10,11}$/.test(number) ? number : null;
+      return /^55\d{10,11}$/.test(number)
+        ? number
+        : null;
     }
 
     function whatsapp(client, key) {
       const number = phone(client.whatsapp);
-      if (!number) return null;
 
-const message =
-  `Olá, ${client.nome}! Você é o próximo da fila com ${names[key]}. ` +
-  `Já pode vir para o salão. ` +
-  `Atenção: quando chegar a sua vez, se você ainda não estiver no salão, ` +
-  `terá uma tolerância de 5 minutos para chegar. Após esse prazo, ` +
-  `você perderá a vez e precisará se cadastrar novamente na fila.`;
+      if (!number) {
+        return null;
+      }
 
-      return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+      const message =
+        `Olá, ${client.nome}! Você é o próximo da fila com ${names[key]}. ` +
+        `Já pode vir para o salão.\n\n` +
+        `Atenção: quando chegar a sua vez, se você ainda não estiver no salão, ` +
+        `terá uma tolerância de 5 minutos para chegar. Após esse prazo, ` +
+        `você perderá a vez e precisará se cadastrar novamente na fila.`;
+
+      return (
+        'https://wa.me/' +
+        number +
+        '?text=' +
+        encodeURIComponent(message)
+      );
     }
 
     function el(tag, text, className) {
       const node = document.createElement(tag);
 
-      if (text !== undefined) node.textContent = text;
-      if (className) node.className = className;
+      if (text !== undefined) {
+        node.textContent = text;
+      }
+
+      if (className) {
+        node.className = className;
+      }
 
       return node;
     }
@@ -247,7 +321,11 @@ const message =
 
       const top = el('div', undefined, 'top');
       const count = el('span', 'Carregando…', 'badge');
-      top.append(el('h2', names[key]), count);
+
+      top.append(
+        el('h2', names[key]),
+        count
+      );
 
       const chair = el('div', undefined, 'chair');
       const current = el('div', '—', 'name');
@@ -265,14 +343,11 @@ const message =
         nextName
       );
 
-      const action = el('button', 'Carregando…');
+      const action = el('button', 'Chamar próximo');
+      action.type = 'button';
       action.disabled = true;
-      action.onclick = () => advance(key);
 
-      const link = el('a', 'Avisar próximo no WhatsApp', 'whatsapp');
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.hidden = true;
+      action.addEventListener('click', () => advance(key));
 
       const feedback = el('p', '', 'feedback');
       feedback.setAttribute('role', 'status');
@@ -285,7 +360,6 @@ const message =
         chair,
         next,
         action,
-        link,
         feedback,
         el('h3', 'Fila de espera'),
         empty,
@@ -303,7 +377,6 @@ const message =
         current,
         nextName,
         action,
-        link,
         feedback,
         list,
         empty
@@ -321,15 +394,12 @@ const message =
       s.nextName.textContent =
         queue.waiting[0]?.nome || 'Ninguém aguardando';
 
-      s.count.textContent = `${queue.waiting.length} aguardando`;
+      s.count.textContent =
+        `${queue.waiting.length} aguardando`;
 
       s.action.textContent = s.busy
-        ? 'Salvando…'
-        : queue.current
-          ? queue.waiting.length
-            ? 'Concluir e chamar próximo'
-            : 'Concluir atendimento'
-          : 'Chamar primeiro da fila';
+        ? 'Atualizando…'
+        : 'Chamar próximo';
 
       s.action.disabled =
         !connected ||
@@ -348,78 +418,75 @@ const message =
           el('strong', client.nome),
           el(
             'span',
-            index === 0 ? 'Próximo a ser atendido' : 'Aguardando'
+            index === 0
+              ? 'Próximo a ser atendido'
+              : 'Aguardando'
           )
         );
 
         s.list.append(row);
       });
-
-      const url = queue.current && queue.waiting[0]
-        ? whatsapp(queue.waiting[0], key)
-        : null;
-
-      s.link.hidden = !url;
-
-      if (url) {
-        s.link.href = url;
-      } else {
-        s.link.removeAttribute('href');
-      }
     }
 
     async function advance(key) {
       const s = state[key];
-      if (s.action.disabled) return;
+
+      if (s.action.disabled) {
+        return;
+      }
 
       const before = parts(s.data);
-      const expectedCurrent = before.current?.id || null;
-      const expectedNext = before.waiting[0]?.id || null;
+
+      const expectedCurrent =
+        before.current?.id || null;
+
+      const expectedNext =
+        before.waiting[0]?.id || null;
 
       s.busy = true;
-      s.feedback.textContent = 'Atualizando atendimento…';
+      s.feedback.textContent =
+        'Atualizando atendimento…';
+
       render(key);
 
-      // Abre durante o clique para evitar bloqueio de janela pelo navegador.
-      const shouldNotify = before.waiting.length > 1;
-      const popup = shouldNotify
-        ? window.open('about:blank', '_blank')
-        : null;
-
-      if (popup) popup.opener = null;
+      let whatsappUrl = null;
 
       try {
-        const result = await db.ref(`barbeiros/${key}`).transaction(
-          data => {
-            if (!data) return;
+        const result = await db
+          .ref(`barbeiros/${key}`)
+          .transaction(
+            data => {
+              if (!data) {
+                return;
+              }
 
-            const queue = parts(data);
+              const queue = parts(data);
 
-            // Impede que dois painéis avancem o mesmo atendimento.
-            if (
-              (queue.current?.id || null) !== expectedCurrent ||
-              (queue.waiting[0]?.id || null) !== expectedNext
-            ) {
-              return;
-            }
+              // Evita avançar duas vezes se outro painel mudou a fila.
+              if (
+                (queue.current?.id || null) !== expectedCurrent ||
+                (queue.waiting[0]?.id || null) !== expectedNext
+              ) {
+                return;
+              }
 
-            if (queue.current) {
-              delete data[queue.current.id];
-            }
+              // Encerra o atendimento atual.
+              if (queue.current) {
+                delete data[queue.current.id];
+              }
 
-            if (queue.waiting[0]) {
-              data[queue.waiting[0].id].status = 'atendendo';
-            }
+              // Chama o primeiro cliente da espera.
+              if (queue.waiting[0]) {
+                data[queue.waiting[0].id].status = 'atendendo';
+              }
 
-            return data;
-          },
-          undefined,
-          false
-        );
+              return data;
+            },
+            undefined,
+            false
+          );
 
         if (!result.committed) {
-          if (popup) popup.close();
-
           s.feedback.textContent =
             'A fila mudou em outro painel. Confira e tente novamente.';
 
@@ -429,59 +496,71 @@ const message =
         s.data = result.snapshot.val();
 
         const after = parts(s.data);
-        const target = after.current && after.waiting[0];
-        const url = target ? whatsapp(target, key) : null;
 
-        if (url) {
-          if (popup) popup.location.replace(url);
+        // Avisa quem vem depois do cliente que acabou de ser chamado.
+        const nextToNotify = after.current
+          ? after.waiting[0]
+          : null;
 
-          s.feedback.textContent = popup
-            ? 'Atendimento atualizado. Envie a mensagem na aba do WhatsApp.'
-            : 'Atendimento atualizado. Clique em Avisar próximo no WhatsApp.';
+        if (nextToNotify) {
+          whatsappUrl = whatsapp(nextToNotify, key);
+
+          s.feedback.textContent = whatsappUrl
+            ? `Cliente chamado. Abrindo o WhatsApp de ${nextToNotify.nome}.`
+            : `Cliente chamado, mas o WhatsApp de ${nextToNotify.nome} ` +
+              `está inválido. Confira o número com DDD.`;
+        } else if (after.current) {
+          s.feedback.textContent =
+            'Cliente chamado. Ninguém mais aguardando para avisar.';
         } else {
-          if (popup) popup.close();
-
-          s.feedback.textContent = target
-            ? 'Atendimento atualizado. O WhatsApp do próximo está inválido; confira o cadastro.'
-            : after.current
-              ? 'Atendimento iniciado. Ninguém mais aguardando.'
-              : 'Atendimento concluído. Fila vazia.';
+          s.feedback.textContent =
+            'Atendimento concluído. Fila vazia.';
         }
       } catch (error) {
-        if (popup) popup.close();
-
         s.feedback.textContent =
-          'Não foi possível atualizar: ' + error.message;
+          'Não foi possível atualizar: ' +
+          error.message;
       } finally {
         s.busy = false;
         render(key);
+      }
+
+      // Abre na mesma aba, sem depender de janelas pop-up.
+      if (whatsappUrl) {
+        window.location.assign(whatsappUrl);
       }
     }
 
     try {
       if (typeof firebase === 'undefined') {
         throw new Error(
-          'Não foi possível carregar o Firebase. Confira a internet e recarregue a página.'
+          'Não foi possível carregar o Firebase. ' +
+          'Confira a internet e recarregue a página.'
         );
       }
 
       if (!firebase.apps.length) {
         firebase.initializeApp({
-          databaseURL: 'https://fila-salao-52932-default-rtdb.firebaseio.com/'
+          databaseURL:
+            'https://fila-salao-52932-default-rtdb.firebaseio.com/'
         });
       }
 
       db = firebase.database();
 
-      db.ref('.info/connected').on('value', snapshot => {
-        connected = snapshot.val() === true;
+      db.ref('.info/connected').on(
+        'value',
+        snapshot => {
+          connected = snapshot.val() === true;
 
-        document.getElementById('connection').textContent = connected
-          ? '● Conectado • fila em tempo real'
-          : 'Sem conexão • aguardando reconectar';
+          document.getElementById('connection').textContent =
+            connected
+              ? '● Conectado • fila em tempo real'
+              : 'Sem conexão • aguardando reconectar';
 
-        Object.keys(names).forEach(render);
-      });
+          Object.keys(names).forEach(render);
+        }
+      );
 
       for (const key of Object.keys(names)) {
         db.ref(`barbeiros/${key}`).on(
@@ -490,19 +569,23 @@ const message =
             state[key].data = snapshot.val();
             state[key].loaded = true;
             state[key].error = false;
+
             render(key);
           },
           error => {
             state[key].error = true;
+
             state[key].feedback.textContent =
-              'Não foi possível ler a fila: ' + error.message;
+              'Não foi possível ler a fila: ' +
+              error.message;
 
             render(key);
           }
         );
       }
     } catch (error) {
-      document.getElementById('connection').textContent = error.message;
+      document.getElementById('connection').textContent =
+        error.message;
     }
   </script>
 </body>
