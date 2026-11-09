@@ -30,7 +30,6 @@
         
         <p style="margin-top: 10px;">com quem você vai cortar?</p>
         
-        <!-- Botões chamam diretamente a função com o nome em minúsculas -->
         <button class="btn-jalbanis" onclick="entrarNaFila('jalbanis')">fila do jalbanis</button>
         <button class="btn-viny" onclick="entrarNaFila('viny')">fila do viny</button>
     </div>
@@ -67,10 +66,10 @@
                 return;
             }
 
-            // Envia os dados para o Firebase na rota em minúsculas
             const dadosCliente = { nome, whatsapp, barbeiro, timestamp: Date.now() };
             
-            db.ref('filas/' + barbeiro).push(dadosCliente)
+            // Alterado para usar a raiz 'barbeiros' que existe no teu banco de dados
+            db.ref('barbeiros/' + barbeiro).push(dadosCliente)
               .then(() => {
                   console.log("Enviado com sucesso!");
                   mostrarTelaEspera(nome, barbeiro);
@@ -87,8 +86,8 @@
             document.getElementById('display-nome').innerText = nome;
             document.getElementById('display-barbeiro').innerText = barbeiro;
 
-            // Ouve as atualizações da posição na fila
-            db.ref('filas/' + barbeiro).on('value', (snapshot) => {
+            // Ouve as atualizações na mesma raiz 'barbeiros'
+            db.ref('barbeiros/' + barbeiro).on('value', (snapshot) => {
                 const dados = snapshot.val();
                 if (!dados) {
                     document.getElementById('display-posicao').innerText = '0';
