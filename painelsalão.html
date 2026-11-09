@@ -17,8 +17,8 @@
         .coluna-viny h2 { color: #fd7e14; }
         ul { list-style: none; padding: 0; }
         li { background: #fafafa; margin-bottom: 10px; padding: 12px; border-radius: 6px; border: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
-        .btn-proximo { background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-proximo:hover { background: #218838; }
+        .btn-proximo { background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-proximo:hover { background: #0056b3; }
         .vazio { text-align: center; color: #888; font-style: italic; margin-top: 20px; }
     </style>
 </head>
@@ -83,13 +83,12 @@
                             li.style.background = '#e9f7ef';
                         }
 
-                        // Passa os dados necessários para a função de chamar via WhatsApp
                         li.innerHTML = `
                             <div>
                                 <strong>${index + 1}. ${cliente.nome}</strong><br>
                                 <small style="color: #666;">tel: ${cliente.whatsapp}</small>
                             </div>
-                            <button class="btn-proximo" onclick="chamarCliente('${chaveBusca1}', '${cliente.id}', '${cliente.nome}', '${cliente.whatsapp}')">chamar / avisar</button>
+                            <button class="btn-proximo" onclick="chamarProximo('${chaveBusca1}', '${cliente.id}', '${cliente.nome}', '${barbeiroExibicao}', '${cliente.whatsapp}')">próximo</button>
                         `;
                         ul.appendChild(li);
                     });
@@ -97,18 +96,18 @@
             });
         }
 
-        function chamarCliente(barbeiroChave, clienteId, nomeCliente, telefoneCliente) {
-            if (confirm(`Deseja chamar ${nomeCliente} e avançar na fila?`)) {
-                // Formata o número do WhatsApp (remove caracteres não numéricos)
+        function chamarProximo(barbeiroChave, clienteId, nomeCliente, nomeBarbeiro, telefoneCliente) {
+            if (confirm(`Deseja chamar ${nomeCliente} e enviar a mensagem de aviso?`)) {
                 const telLimpo = telefoneCliente.replace(/\D/g, '');
                 
-                // Mensagem personalizada a avisar o cliente
-                const mensagem = encodeURIComponent(`Olá ${nomeCliente}, é a sua vez! O seu atendimento na barbearia vai começar.`);
+                // Mensagem exata que definiste
+                const textoMensagem = `olá, ${nomeCliente}! você é o próximo da fila com o ${nomeBarbeiro}. vá se aproximando da barbearia. lembrando que a tolerância de espera é de apenas 5 minutos.`;
+                const mensagem = encodeURIComponent(textoMensagem);
                 
-                // Abre o WhatsApp Web / App com a mensagem pronta para enviar
+                // Abre o WhatsApp com a mensagem pronta
                 window.open(`https://wa.me/55${telLimpo}?text=${mensagem}`, '_blank');
 
-                // Remove o cliente da fila após o chamado
+                // Remove o cliente da fila correspondente
                 db.ref('barbeiros/' + barbeiroChave + '/' + clienteId).remove();
             }
         }
